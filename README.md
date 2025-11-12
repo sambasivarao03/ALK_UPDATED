@@ -119,19 +119,63 @@ Creates a new identity record.
 ```json
 {
   "action": "INSERT",
+  "source": "Aadhaar",
   "data": {
-    "aadhaar_number": "123412341234",
-    "pan_number": "ABCDE1234F",
-    "voter_id": "XYZ1234567",
-    "dl_number": "DL0420190001234",
-    "forename": "Ravi",
-    "secondname": "Kumar",
-    "lastname": "Sharma",
-    "dob": "1995-05-12",
-    "address": "123 Main Street, Delhi",
+    "aadhaar_number": "987654321012",
+    "forename": "name",
+    "secondname": "name",
+    "lastname": "name",
+    "dob": "1998-05-10",
+    "address": "Hyderabad, Telangana",
     "gender": "Male"
   }
 }
+
+
+
+{
+  "action": "INSERT",
+  "source": "PAN",
+  "data": {
+    "pan_number": "ABCDE1234F",
+    "forename": "name",
+    "secondname": "name",
+    "lastname": "name",
+    "dob": "1998-05-10",
+    "address": "Hyderabad, Telangana",
+    "gender": "Male"
+  }
+}
+
+
+{
+  "action": "INSERT",
+  "source": "Voter",
+  "data": {
+    "voter_id": "XYZ1234567",
+    "forename": "name",
+    "lastname": "name",
+    "dob": "1998-05-10",
+    "address": "Hyderabad, Telangana",
+    "gender": "Male"
+  }
+}
+
+
+{
+  "action": "INSERT",
+  "source": "Driving",
+  "data": {
+    "dl_number": "AP1020190012345",
+    "forename": "name",
+    "lastname": "name",
+    "dob": "1998-05-10",
+    "address": "Hyderabad, Telangana",
+    "gender": "Male"
+  }
+}
+
+
 ```
 
 ---
@@ -141,10 +185,15 @@ Updates an existing record using `oldAadhaarLinkageKey`.
 ```json
 {
   "action": "UPDATE",
-  "oldAadhaarLinkageKey": "ALK1234567890",
+  "source": "Aadhaar",
+  "oldAadhaarLinkageKey": "old ALK ",
   "data": {
-    "address": "456 New Colony, Mumbai",
-    "lastname": "Verma"
+    "aadhaar_number": "987654321012",
+    "forename": "name",
+    "lastname": "name",
+    "dob": "1998-05-10",
+    "address": "Updated Address, Hyderabad",
+    "gender": "Male"
   }
 }
 ```
@@ -156,8 +205,10 @@ Deletes a record using its unique linkage key.
 ```json
 {
   "action": "DELETE",
-  "oldAadhaarLinkageKey": "ALK1234567890"
+  "source": "Aadhaar",
+  "oldAadhaarLinkageKey": "old ALk"
 }
+
 ```
 
 ---
@@ -167,12 +218,8 @@ Searches for a person by Aadhaar + DOB + Name combination.
 ```json
 {
   "action": "SEARCH",
-  "data": {
-    "aadhaar_number": "123412341234",
-    "dob": "1995-05-12",
-    "forename": "Ravi",
-    "lastname": "Sharma"
-  }
+"source" : "Aadhaar",
+"oldAadhaarLinkageKey": "old ALk"
 }
 ```
 
