@@ -1,4 +1,4 @@
-package com.aadhaar.linkage.service;
+importmportackage com.aadhaar.linkage.service;
 
 import com.aadhaar.linkage.dto.LinkageRequest;
 import com.aadhaar.linkage.dto.LinkageResponse;
@@ -309,4 +309,168 @@ private LinkageResponse validateRequest(LinkageRequest req) {
 LinkageResponse vr = validateRequest(req);
 if (!"SUCCESS".equals(vr.getStatus())) {
     return vr;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+private LinkageResponse validateRequest(LinkageRequest req) {
+
+    if (req == null) {
+        return LinkageResponse.error("Request payload cannot be null");
+    }
+
+    if (req.getAction() == null || req.getAction().isBlank()) {
+        return LinkageResponse.error("Action is required");
+    }
+
+    Set<String> validActions = Set.of("INSERT", "UPDATE", "DELETE", "SEARCH");
+    String action = req.getAction().trim().toUpperCase();
+
+    if (!validActions.contains(action)) {
+        return LinkageResponse.error("Invalid action: " + req.getAction());
+    }
+
+    // --- Source validation ---
+    if (!action.equals("SEARCH")) {
+        if (req.getSource() == null || req.getSource().isBlank()) {
+            return LinkageResponse.error("Source is required");
+        }
+
+        Set<String> validSources = Set.of("AADHAAR", "PAN", "VOTER", "DRIVING");
+
+        if (!validSources.contains(req.getSource().trim().toUpperCase())) {
+            return LinkageResponse.error("Invalid source: " + req.getSource());
+        }
+    }
+
+    // --- Data validation for INSERT/UPDATE ---
+    if (action.equals("INSERT") || action.equals("UPDATE")) {
+
+        Map<String, String> data = req.getData();
+
+        if (data == null || data.isEmpty()) {
+            return LinkageResponse.error("Data cannot be empty for INSERT/UPDATE");
+        }
+
+        for (Object v : data.values()) {
+            if (!(v instanceof String)) {
+                return LinkageResponse.error("All data fields must be strings");
+            }
+        }
+
+        // required fields
+        List<String> required = List.of("forename", "dob");
+        for (String key : required) {
+            if (!data.containsKey(key) || data.get(key).isBlank()) {
+                return LinkageResponse.error(key + " is required");
+            }
+        }
+
+        // allowed keys
+        Set<String> allowedKeys = Set.of(
+            "forename","secondname","lastname","dob",
+            "aadhaar_number","pan_number","dl_number",
+            "voter_id","address","gender"
+        );
+
+        for (String key : data.keySet()) {
+            if (!allowedKeys.contains(key)) {
+                return LinkageResponse.error("Unknown field: " + key);
+            }
+        }
+
+        // ----------------------------
+        // FIELD-LEVEL STRICT VALIDATION
+        // ----------------------------
+
+        // Aadhaar validation
+        if (data.containsKey("aadhaar_number")) {
+            String aadhaar = data.get("aadhaar_number");
+            if (!aadhaar.matches("\\d{12}")) {
+                return LinkageResponse.error("Invalid aadhaar_number: must be 12 digits");
+            }
+        }
+
+        // PAN validation
+        if (data.containsKey("pan_number")) {
+            String pan = data.get("pan_number").toUpperCase();
+            if (!pan.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
+                return LinkageResponse.error("Invalid pan_number format");
+            }
+        }
+
+        // Voter ID validation
+        if (data.containsKey("voter_id")) {
+            String voter = data.get("voter_id").toUpperCase();
+            if (!voter.matches("[A-Z]{3}[0-9]{7}")) {
+                return LinkageResponse.error("Invalid voter_id format");
+            }
+        }
+
+        // Driving license validation (generic)
+        if (data.containsKey("dl_number")) {
+            String dl = data.get("dl_number").toUpperCase();
+            if (!dl.matches("[A-Z]{2}-[0-9]{2}-[0-9]{11}")) {
+                return LinkageResponse.error("Invalid dl_number format (expected: XX-00-00000000000)");
+            }
+        }
+
+        // DOB validation: yyyy-MM-dd
+        String dob = data.get("dob");
+        if (!dob.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            return LinkageResponse.error("Invalid dob format, expected yyyy-MM-dd");
+        }
+        try {
+            LocalDate.parse(dob);
+        } catch (Exception e) {
+            return LinkageResponse.error("Invalid dob date value");
+        }
+
+        // Gender validation
+        if (data.containsKey("gender")) {
+            String g = data.get("gender").trim().toUpperCase();
+            if (!Set.of("M","F","O").contains(g)) {
+                return LinkageResponse.error("Invalid gender: allowed values are M, F, O");
+            }
+        }
+
+        // source-specific required key
+        switch (req.getSource().trim().toUpperCase()) {
+            case "AADHAAR":
+                if (!data.containsKey("aadhaar_number"))
+                    return LinkageResponse.error("aadhaar_number required");
+                break;
+            case "PAN":
+                if (!data.containsKey("pan_number"))
+                    return LinkageResponse.error("pan_number required");
+                break;
+            case "VOTER":
+                if (!data.containsKey("voter_id"))
+                    return LinkageResponse.error("voter_id required");
+                break;
+            case "DRIVING":
+                if (!data.containsKey("dl_number"))
+                    return LinkageResponse.error("dl_number required");
+                break;
+        }
+    }
+
+    // --- old key validation ---
+    if (action.equals("UPDATE") || action.equals("DELETE") || action.equals("SEARCH")) {
+        if (req.getOldAadhaarLinkageKey() == null || req.getOldAadhaarLinkageKey().isBlank()) {
+            return LinkageResponse.error("oldAadhaarLinkageKey is required");
+        }
+    }
+
+    return LinkageResponse.success("VALID");
 }
