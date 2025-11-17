@@ -201,3 +201,112 @@ public class LinkageService {
         return Integer.toHexString(value.hashCode());
     }
 }
+
+
+
+
+
+
+
+private LinkageResponse validateRequest(LinkageRequest req) {
+
+    if (req == null) {
+        return LinkageResponse.error("Request payload cannot be null");
+    }
+
+    if (req.getAction() == null || req.getAction().isBlank()) {
+        return LinkageResponse.error("Action is required");
+    }
+
+    Set<String> validActions = Set.of("INSERT", "UPDATE", "DELETE", "SEARCH");
+    String action = req.getAction().trim().toUpperCase();
+
+    if (!validActions.contains(action)) {
+        return LinkageResponse.error("Invalid action: " + req.getAction());
+    }
+
+    // --- Source validation ---
+    if (!action.equals("SEARCH")) {
+        if (req.getSource() == null || req.getSource().isBlank()) {
+            return LinkageResponse.error("Source is required");
+        }
+
+        Set<String> validSources = Set.of("AADHAAR", "PAN", "VOTER", "DRIVING");
+
+        if (!validSources.contains(req.getSource().trim().toUpperCase())) {
+            return LinkageResponse.error("Invalid source: " + req.getSource());
+        }
+    }
+
+    // --- Data validation for INSERT/UPDATE ---
+    if (action.equals("INSERT") || action.equals("UPDATE")) {
+
+        Map<String, String> data = req.getData();
+
+        if (data == null || data.isEmpty()) {
+            return LinkageResponse.error("Data cannot be empty for INSERT/UPDATE");
+        }
+
+        for (Object v : data.values()) {
+            if (!(v instanceof String)) {
+                return LinkageResponse.error("All data fields must be strings");
+            }
+        }
+
+        List<String> required = List.of("forename", "dob");
+
+        for (String key : required) {
+            if (!data.containsKey(key) || data.get(key).isBlank()) {
+                return LinkageResponse.error(key + " is required");
+            }
+        }
+
+        // allowed keys
+        Set<String> allowedKeys = Set.of(
+            "forename","secondname","lastname","dob",
+            "aadhaar_number","pan_number","dl_number",
+            "voter_id","address","gender"
+        );
+
+        for (String key : data.keySet()) {
+            if (!allowedKeys.contains(key)) {
+                return LinkageResponse.error("Unknown field: " + key);
+            }
+        }
+
+        // source-specific field
+        switch (req.getSource().trim().toUpperCase()) {
+            case "AADHAAR":
+                if (!data.containsKey("aadhaar_number"))
+                    return LinkageResponse.error("aadhaar_number required");
+                break;
+            case "PAN":
+                if (!data.containsKey("pan_number"))
+                    return LinkageResponse.error("pan_number required");
+                break;
+            case "VOTER":
+                if (!data.containsKey("voter_id"))
+                    return LinkageResponse.error("voter_id required");
+                break;
+            case "DRIVING":
+                if (!data.containsKey("dl_number"))
+                    return LinkageResponse.error("dl_number required");
+                break;
+        }
+    }
+
+    // --- old key validation ---
+    if (action.equals("UPDATE") || action.equals("DELETE") || action.equals("SEARCH")) {
+        if (req.getOldAadhaarLinkageKey() == null || req.getOldAadhaarLinkageKey().isBlank()) {
+            return LinkageResponse.error("oldAadhaarLinkageKey is required");
+        }
+    }
+
+    return LinkageResponse.success("VALID");
+}
+
+
+LinkageResponse vr = validateRequest(req);
+if (!"SUCCESS".equals(vr.getStatus())) {
+    return vr;
+}
